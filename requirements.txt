@@ -1,0 +1,10 @@
+pandas
+nltk
+langchain
+huggingface_hub
+textblob
+pytesseract
+pillow
+PyPDF2
+python-docx
+streamlit
