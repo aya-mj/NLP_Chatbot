@@ -7,12 +7,20 @@ from nltk.metrics.distance import edit_distance
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import FunctionTransformer
+from sklearn.preprocessing import LabelEncoder
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.tree import DecisionTreeClassifier
 import pandas as pd
 import re
 import time
 from collections import Counter
 import numpy as np
-from sklearn.cluster import KMeans
+import pickle
+import matplotlib.pyplot as plt
+import seaborn as sns
+
 # Uncomment to download necessary resources
 # # Download necessary resources
 # nltk.download('stopwords')
@@ -176,4 +184,86 @@ def prepare_training_data():
     return df
 
 ############################__PHASE 2__#############################
+def prepare_dataset_for_classification(training_df):
+    # Check if 'source' column exists (needed as target for classification)
+    if 'source' not in training_df.columns:
+        raise ValueError("Dataset must contain a 'source' column for classification")
+    
+    le = LabelEncoder()
+    y = le.fit_transform(training_df['source'])
+    
+    label_mapping = {i: label for i, label in enumerate(le.classes_)}
+    print(f"\nClass Labels: {label_mapping}")
+
+    print("\nPerforming TF-IDF Vectorization...")
+    vectorizer = TfidfVectorizer(max_features=1000, stop_words='english')
+    X = vectorizer.fit_transform(training_df['processed_text'])
+    print(f"Feature matrix shape: {X.shape}")
+    
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+    
+    print(f"Training set: {X_train.shape[0]} samples")
+    print(f"Testing set: {X_test.shape[0]} samples")
+    
+    return X_train, X_test, y_train, y_test, vectorizer, label_mapping
+
+def train_and_evaluate_models(X_train, X_test, y_train, y_test, label_mapping):
+    models = {
+        'Naive Bayes': MultinomialNB(),
+        'Decision Tree': DecisionTreeClassifier(random_state=42)
+    }
+    
+    results = {}
+    best_accuracy = 0
+    best_model_name = ""
+    best_model = None
+    
+    print("\nTraining and evaluating models:")
+    
+    for name, model in models.items():
+        start_time = time.time()
+        
+        # Train the model
+        print(f"\nTraining {name}...")
+        model.fit(X_train, y_train)
+        
+        # Evaluate on test set
+        y_pred = model.predict(X_test)
+        accuracy = accuracy_score(y_test, y_pred)
+        training_time = time.time() - start_time
+        
+        # Store results
+        results[name] = {
+            'model': model,
+            'accuracy': accuracy,
+            'training_time': training_time,
+            'predictions': y_pred
+        }
+        
+        # Print summary
+        print(f"{name} - Accuracy: {accuracy:.4f}, Training Time: {training_time:.2f} seconds")
+        
+        # Track best model
+        if accuracy > best_accuracy:
+            best_accuracy = accuracy
+            best_model_name = name
+            best_model = model
+    
+    # Print best model
+    print(f"\nBest model: {best_model_name} with accuracy: {best_accuracy:.4f}")
+    
+    # Detailed evaluation of best model
+    y_pred = results[best_model_name]['predictions']
+    print("\nDetailed evaluation of best model:")
+    print(classification_report(y_test, y_pred, target_names=list(label_mapping.values())))
+    
+    return results, best_model_name, best_model
+
+def save_model(model, filename):
+    # function to save the model to a file
+    pass
+
+def load_model(filename):
+    # function to load the model from a file
+    pass
 
