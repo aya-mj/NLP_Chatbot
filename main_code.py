@@ -261,9 +261,47 @@ def train_and_evaluate_models(X_train, X_test, y_train, y_test, label_mapping):
 
 def save_model(model, filename):
     # function to save the model to a file
-    pass
+    with open(filename, 'wb') as f:
+        pickle.dump(model, f)
 
 def load_model(filename):
     # function to load the model from a file
-    pass
+    with open(filename, 'rb') as f:
+        return pickle.load(f)
 
+
+if __name__ == "__main__":
+    # Load data
+    training_df = prepare_training_data()
+
+    # Prepare dataset for classification
+    X_train, X_test, y_train, y_test, vectorizer, label_mapping = prepare_dataset_for_classification(training_df)
+    results, best_model_name, best_model = train_and_evaluate_models(X_train, X_test, y_train, y_test, label_mapping)
+
+    # Save the best model
+    save_model(best_model, "best_model.pkl")
+
+    # Load the best model
+    loaded_model = load_model("best_model.pkl")
+
+#visualize the results
+def visualize_results(results):
+    # Create a bar plot of model accuracy
+    plt.figure(figsize=(10, 6))
+    sns.barplot(x=list(results.keys()), y=[result['accuracy'] for result in results.values()])
+    plt.xlabel('Model')
+    plt.ylabel('Accuracy')
+    plt.title('Model Accuracy Comparison')
+    plt.tight_layout()
+    plt.show()
+
+    # Create a confusion matrix heatmap
+    y_pred = results[best_model_name]['predictions']
+    cm = confusion_matrix(y_test, y_pred)
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=label_mapping.values(), yticklabels=label_mapping.values())
+    plt.xlabel('Predicted')
+    plt.ylabel('Actual')
+    plt.title('Confusion Matrix')
+    plt.show()
+    
