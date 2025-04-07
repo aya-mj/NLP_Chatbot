@@ -12,7 +12,7 @@ import re
 import time
 from collections import Counter
 import numpy as np
-
+from sklearn.cluster import KMeans
 # Uncomment to download necessary resources
 # # Download necessary resources
 # nltk.download('stopwords')
@@ -24,7 +24,7 @@ import numpy as np
 stop_words = set(stopwords.words('english'))
 dictionary = set(words.words())
 
-# Create a frequency dictionary from available texts for better spell checking
+############################__PHASE 1__#############################
 def create_frequency_dict():
     available_texts = [text1, text2, text3, text4, text5, text6, text7, text8, text9]
     all_words = []
@@ -39,8 +39,8 @@ word_freq_dict = create_frequency_dict()
 def clean_text(text):
     text = text.lower()  # Convert to lowercase
     text = re.sub(r'[^a-z\s]', '', text)  # Fixed invalid escape sequence by using r prefix
-    tokens = text.split()  # Split text into words
-    tokens = [word for word in tokens if word not in stop_words]  # Remove stopwords
+    tokens = text.split()  
+    tokens = [word for word in tokens if word not in stop_words]  
     return ' '.join(tokens)
 
 # Function to measure performance
@@ -64,7 +64,7 @@ def process_text(text):
     ])
    
     processed = preprocessor.transform(text)
-    return [processed]  # Return as a list containing one string
+    return [processed] 
 
 def get_word_frequency(word, freq_dict):
     """Get frequency of a word in the frequency dictionary"""
@@ -124,14 +124,12 @@ def correct_spelling(text, word_set, freq_dict):
     words_in_text = word_tokenize(text)
     corrected_words = []
     
-    # Create context window
     context_window = 3
     for i, word in enumerate(words_in_text):
         if not word.isalpha():
             corrected_words.append(word)
             continue
             
-        # Get context words
         start = max(0, i - context_window)
         end = min(len(words_in_text), i + context_window + 1)
         context_words = [w.lower() for w in words_in_text[start:end] if w.isalpha()]
@@ -139,9 +137,7 @@ def correct_spelling(text, word_set, freq_dict):
         if word.lower() in word_set:
             corrected_words.append(word)
         else:
-            # Get corrected word with context
             corrected_word = spell_check(word.lower(), word_set, freq_dict, context_words)
-            # Preserve original case
             if word[0].isupper():
                 corrected_word = corrected_word.capitalize()
             corrected_words.append(corrected_word)
@@ -161,21 +157,16 @@ def prepare_training_data():
     
     for idx, text_obj in enumerate(available_texts):
         print(f"Processing {text_names[idx]}...")
-        
-        # Convert text object to string
         text_str = ' '.join(text_obj)
         
-        # Split into sentences
         sentences = sent_tokenize(text_str)
         
-        # Process each sentence
         for sentence in sentences:
             if len(sentence.split()) >= 3:  # Only include sentences with at least 3 words
                 processed = process_text(sentence)[0]
                 all_processed_sentences.append(processed)
                 text_sources.append(text_names[idx])
     
-    # Create DataFrame with processed texts
     df = pd.DataFrame({
         'processed_text': all_processed_sentences,
         'source': text_sources
@@ -184,11 +175,5 @@ def prepare_training_data():
     print(f"Total sentences processed: {len(df)}")
     return df
 
-# Example usage
-if __name__ == "__main__":
-    # Apply spell check to the text
-    input_sentence = "Thiss is a smple sentnce with soome mistake"
-    corrected = correct_spelling(input_sentence, dictionary, word_freq_dict)
+############################__PHASE 2__#############################
 
-    print("Corrected Sentence:")
-    print(corrected)
